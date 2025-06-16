@@ -27,4 +27,6 @@ public interface SmsCouponHistoryMapper {
     int updateByPrimaryKeySelective(SmsCouponHistory row);
 
     int updateByPrimaryKey(SmsCouponHistory row);
+
+    boolean existsByCouponIdAndMemberId(@Param("couponId") Long couponId, @Param("memberId") Long memberId);
 }

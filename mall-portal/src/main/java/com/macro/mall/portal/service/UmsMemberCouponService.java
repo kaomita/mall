@@ -3,9 +3,11 @@ package com.macro.mall.portal.service;
 import com.macro.mall.model.SmsCoupon;
 import com.macro.mall.model.SmsCouponHistory;
 import com.macro.mall.portal.domain.CartPromotionItem;
+import com.macro.mall.portal.domain.CouponMessage;
 import com.macro.mall.portal.domain.SmsCouponHistoryDetail;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -16,8 +18,12 @@ public interface UmsMemberCouponService {
     /**
      * 会员添加优惠券
      */
-    @Transactional
     void add(Long couponId);
+
+    /**
+     * 消息队列处理优惠卷
+     * */
+    void processCoupon(CouponMessage msg);
 
     /**
      * 获取优惠券历史列表
