@@ -195,6 +195,14 @@
       <include refid="Example_Where_Clause" />
     </if>
   </select>
+  <select id="existsByCouponIdAndMemberId" resultType="java.lang.Boolean">
+    select exists(
+      select 1
+      from sms_coupon_history
+      where coupon_id = #{couponId,jdbcType=BIGINT}
+        and member_id = #{memberId,jdbcType=BIGINT}
+    )
+  </select>
   <update id="updateByExampleSelective" parameterType="map">
     update sms_coupon_history
     <set>

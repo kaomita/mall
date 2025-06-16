@@ -4,17 +4,23 @@ import cn.hutool.core.collection.CollUtil;
 import com.macro.mall.common.exception.Asserts;
 import com.macro.mall.mapper.*;
 import com.macro.mall.model.*;
+import com.macro.mall.portal.component.CouponSaleSender;
 import com.macro.mall.portal.component.LuaScriptRegistry;
+import com.macro.mall.portal.dao.CouponDao;
 import com.macro.mall.portal.dao.SmsCouponHistoryDao;
 import com.macro.mall.portal.domain.CartPromotionItem;
+import com.macro.mall.portal.domain.CouponMessage;
 import com.macro.mall.portal.domain.SmsCouponHistoryDetail;
 import com.macro.mall.portal.service.UmsMemberCouponCacheService;
 import com.macro.mall.portal.service.UmsMemberCouponService;
 import com.macro.mall.portal.service.UmsMemberService;
+import com.macro.mall.portal.util.CouponUtil;
 import com.macro.mall.portal.util.DateUtil;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -50,11 +56,15 @@ public class UmsMemberCouponServiceImpl implements UmsMemberCouponService {
     private String USER_COUPON_PREFIX;
     @Autowired
     LuaScriptRegistry luaScriptRegistry;
+    @Autowired
+    CouponSaleSender couponSaleSender;
+    @Autowired
+    CouponDao couponDao;
 
     /**
+     * 将优惠卷信息加入到redis中
      * TODO：使用消息队列，将redis的更改更新到数据库
      * */
-
     @Override
     public void add(Long couponId) {
         // 在redis中去找
@@ -77,20 +87,24 @@ public class UmsMemberCouponServiceImpl implements UmsMemberCouponService {
                 luaScriptRegistry.get("couponSale"), Arrays.asList(couponKey, userCouponKey), String.valueOf(userId));
 
         switch ((int)scriptResult) {
+
+            case 1:
+            case 2:
+                // 领取成功，将信息发送到消息队列
+                CouponMessage msg = new CouponMessage(couponId, userId, currentMember.getNickname(), now);
+                couponSaleSender.sendCouponMessage(msg);
+                break;
             case 0 :
                 Asserts.fail("lua脚本执行失败");
-                break;
-            case 1:
-                // TODO:领取成功，将信息发送到消息队列
                 break;
             case -1:
                 Asserts.fail("优惠卷已经被领完了");
                 break;
-            case 2:
-                // TODO:再次领取成功，将信息发送到消息队列
-                break;
             case -2:
                 Asserts.fail("超过每人领取数量");
+                break;
+            default:
+                Asserts.fail("Unexpected script result: " + scriptResult);
                 break;
         }
 
@@ -133,24 +147,27 @@ public class UmsMemberCouponServiceImpl implements UmsMemberCouponService {
     }
 
     /**
-     * 16位优惠码生成：时间戳后8位+4位随机数+用户id后4位
-     */
-    private String generateCouponCode(Long memberId) {
-        StringBuilder sb = new StringBuilder();
-        Long currentTimeMillis = System.currentTimeMillis();
-        String timeMillisStr = currentTimeMillis.toString();
-        sb.append(timeMillisStr.substring(timeMillisStr.length() - 8));
-        for (int i = 0; i < 4; i++) {
-            sb.append(new Random().nextInt(10));
-        }
-        String memberIdStr = memberId.toString();
-        if (memberIdStr.length() <= 4) {
-            sb.append(String.format("%04d", memberId));
-        } else {
-            sb.append(memberIdStr.substring(memberIdStr.length()-4));
-        }
-        return sb.toString();
+     * 处理优惠卷消息
+     * */
+    @Override
+    @Transactional
+    public void processCoupon(CouponMessage msg) {
+        // TODO: 使用setnx解决消息队列幂等问题
+        // 根据优惠卷id减库存
+        couponDao.reduceById(msg.getCouponId());
+
+        // 生成优惠卷历史
+        SmsCouponHistory couponHistory = new SmsCouponHistory();
+        couponHistory.setCouponId(msg.getCouponId());
+        couponHistory.setMemberId(msg.getUserId());
+        couponHistory.setCouponCode(CouponUtil.generateCouponCode(msg.getUserId()));
+        couponHistory.setCreateTime(msg.getTime());
+        couponHistory.setMemberNickname(msg.getNickname());
+        couponHistory.setGetType(1); // 主动领取
+        couponHistory.setUseStatus(0); // 未使用
+        couponHistoryMapper.insert(couponHistory);
     }
+
 
     @Override
     public List<SmsCouponHistory> listHistory(Integer useStatus) {

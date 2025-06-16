@@ -1,10 +1,6 @@
 package com.macro.mall.service;
 
 import com.macro.mall.dto.SmsCouponParam;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-
-import java.util.HashMap;
-import java.util.List;
 
 public interface SmsCouponCacheService {
     /**

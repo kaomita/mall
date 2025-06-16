@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.macro.mall.portal.dao.CouponDao">
+
+    <!-- 根据优惠券ID减少库存 -->
+    <update id="reduceById">
+        UPDATE sms_coupon
+        SET count = count - 1,
+            receive_count = COALESCE(receive_count, 0) + 1
+        WHERE id = #{id} AND count > 0
+    </update>
+
+</mapper>
