@@ -32,6 +32,13 @@ spring:
     virtual-host: /mall
     username: mall
     password: mall
+    publisher-confirm-type: correlated  # 开启 confirm 回调
+#    publisher-returns: true             # 开启 return 回调
+    listener:
+      simple:
+        acknowledge-mode: auto # 消费者确认机制 收到nack时要重试
+        retry:
+          enabled: true # 失败后重试三次将失败消息自定义处理
 
 logging:
   level:

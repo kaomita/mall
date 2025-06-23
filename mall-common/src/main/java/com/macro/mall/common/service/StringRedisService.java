@@ -18,19 +18,27 @@ public interface StringRedisService {
     Object hGet(String key, String hashKey);
 
     /**
-     * 删除优惠卷
+     * 删除
      * */
     void hDel(String key);
 
     /**
-     * 获取所有优惠卷信息
+     * 获取信息
      * */
     Map<Object, Object> getAll(String key);
 
     /**
-     * 查询优惠卷数据
+     * 查询数据
      * */
     Object get(String key, String hashKey);
 
+    /**
+     * 执行脚本
+     * */
     Long execute(DefaultRedisScript<Long> redisScript, List<String> keyLists, Object... argv);
+    
+    /**
+     * setnx,键不存在则返回 true，否则返回 false
+     * */
+    Boolean setnx(String key, Long expireTime);
 }

@@ -20,4 +20,9 @@ public interface UmsMemberCouponCacheService {
      * 执行lua脚本
      * */
     long luaExecute(DefaultRedisScript<Long> redisScript, List<String> keyLists, Object... argv);
+
+    /**
+     * 设置用户抢购的优惠卷记录消息的id
+     * */
+    Boolean setIfAbsence(String msgId);
 }

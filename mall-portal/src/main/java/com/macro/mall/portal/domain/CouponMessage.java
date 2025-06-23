@@ -1,5 +1,6 @@
 package com.macro.mall.portal.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,5 +21,6 @@ public class CouponMessage {
     private Long userId;
     private String nickname;
     private Date time;
-
+    @JsonIgnore // 不从 JSON 中反序列化这个字段
+    private String msgId;
 }

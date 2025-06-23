@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * StringRedisService实现类
@@ -48,6 +49,11 @@ public class StringRedisServiceImpl implements StringRedisService {
     @Override
     public Long execute(DefaultRedisScript<Long> redisScript, List<String> keyLists, Object... argv) {
         return stringRedisTemplate.execute(redisScript, keyLists, argv);
+    }
+
+    @Override
+    public Boolean setnx(String key, Long expireTime) {
+        return stringRedisTemplate.opsForValue().setIfAbsent(key, "1", expireTime, TimeUnit.SECONDS);
     }
 
 }

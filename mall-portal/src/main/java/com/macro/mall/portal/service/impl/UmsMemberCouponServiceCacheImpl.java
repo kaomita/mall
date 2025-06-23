@@ -17,6 +17,9 @@ public class UmsMemberCouponServiceCacheImpl implements UmsMemberCouponCacheServ
     private String REDIS_DATABASE;
     @Value("${redis.key.coupon}")
     private String COUPON_PREFIX;
+    @Value("${redis.expire.messageTime}")
+    private Long EXPIRE;
+
 
     public UmsMemberCouponServiceCacheImpl(StringRedisService stringRedisService) {
         this.stringRedisService = stringRedisService;
@@ -53,5 +56,10 @@ public class UmsMemberCouponServiceCacheImpl implements UmsMemberCouponCacheServ
     public long luaExecute(DefaultRedisScript<Long> luaScript, List<String> keyLists, Object... argv) {
         Long result = stringRedisService.execute(luaScript, keyLists, argv);
         return result != null ? result : 0;
+    }
+
+    @Override
+    public Boolean setIfAbsence(String msgId) {
+        return stringRedisService.setnx(msgId, EXPIRE);
     }
 }

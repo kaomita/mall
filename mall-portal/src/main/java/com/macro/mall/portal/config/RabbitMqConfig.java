@@ -1,9 +1,12 @@
 package com.macro.mall.portal.config;
 
 import com.macro.mall.portal.domain.QueueEnum;
-import com.rabbitmq.client.ConnectionFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.retry.MessageRecoverer;
+import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +17,33 @@ import org.springframework.context.annotation.Configuration;
  * Created by macro on 2018/9/14.
  */
 @Configuration
+@Slf4j
 public class RabbitMqConfig {
+    /**
+     * 使用消息回调
+     * */
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
+                                         MessageConverter jacksonMessageConverter) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+
+        // 设置jackson序列化
+        rabbitTemplate.setMessageConverter(jacksonMessageConverter);
+
+        /*// 设置 mandatory 为 true，确保消息无法路由时会回退。无法路由基本是人为设置造成的，生产时无需启用ReturnCallback
+        rabbitTemplate.setMandatory(true);
+
+        // 设置 ReturnCallback：消息无法投递到队列时触发
+        rabbitTemplate.setReturnsCallback(returned -> {
+            log.warn("消息未投递成功！消息：{}，应答码：{}，原因：{}，交换机：{}，路由键：{}",
+                    new String(returned.getMessage().getBody()),
+                    returned.getReplyCode(),
+                    returned.getReplyText(),
+                    returned.getExchange(),
+                    returned.getRoutingKey());
+        });*/
+        return rabbitTemplate;
+    }
 
     /**
      * 消息使用jackson序列化
@@ -25,6 +54,13 @@ public class RabbitMqConfig {
         return new Jackson2JsonMessageConverter();
     }
 
+    /**
+     * 消费者重试失败消息转发到指定的 exchange 和 routing key
+     * */
+    @Bean
+    public MessageRecoverer messageRecoverer(RabbitTemplate rabbitTemplate) {
+        return new RepublishMessageRecoverer(rabbitTemplate, "mall.error.direct", "mall.sale.error");
+    }
 
     /**
      * 订单消息实际消费队列所绑定的交换机
@@ -49,7 +85,7 @@ public class RabbitMqConfig {
     }
 
     /**
-     * 订单实际消费队列
+     * 订单实际消费队列（死信队列）
      */
     @Bean
     public Queue orderQueue() {
@@ -57,7 +93,7 @@ public class RabbitMqConfig {
     }
 
     /**
-     * 订单延迟队列（死信队列）
+     * 订单延迟队列
      */
     @Bean
     public Queue orderTtlQueue() {
@@ -89,5 +125,4 @@ public class RabbitMqConfig {
                 .to(orderTtlDirect)
                 .with(QueueEnum.QUEUE_TTL_ORDER_CANCEL.getRouteKey());
     }
-
 }

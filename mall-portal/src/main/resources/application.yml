@@ -65,6 +65,7 @@ redis:
   expire:
     authCode: 90 # 验证码超期时间
     common: 86400 # 24小时
+    messageTime: 120 # 消息队列幂等性超时时间
 
 mongo:
   insert:

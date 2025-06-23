@@ -16,14 +16,16 @@ import com.macro.mall.portal.service.UmsMemberCouponService;
 import com.macro.mall.portal.service.UmsMemberService;
 import com.macro.mall.portal.util.CouponUtil;
 import com.macro.mall.portal.util.DateUtil;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -91,7 +93,8 @@ public class UmsMemberCouponServiceImpl implements UmsMemberCouponService {
             case 1:
             case 2:
                 // 领取成功，将信息发送到消息队列
-                CouponMessage msg = new CouponMessage(couponId, userId, currentMember.getNickname(), now);
+                // 将多个数据封装进实体类，便于序列化和反序列化
+                CouponMessage msg = new CouponMessage(couponId, userId, currentMember.getNickname(), now, null);
                 couponSaleSender.sendCouponMessage(msg);
                 break;
             case 0 :
@@ -152,7 +155,6 @@ public class UmsMemberCouponServiceImpl implements UmsMemberCouponService {
     @Override
     @Transactional
     public void processCoupon(CouponMessage msg) {
-        // TODO: 使用setnx解决消息队列幂等问题
         // 根据优惠卷id减库存
         couponDao.reduceById(msg.getCouponId());
 
